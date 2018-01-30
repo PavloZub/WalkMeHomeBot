@@ -30,7 +30,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-MAIN_MENU, COMMIT_MENU, COMMIT_MENU2, TRACKING = range(4)
+MAIN_MENU, COMMIT_MENU, COMMIT_MENU2, COMMIT_MENU3, TRACKING = range(5)
 
 
 def facts_to_str(user_data):
@@ -55,14 +55,14 @@ def start(bot, update):
 
 
 def main_menu_phone(bot, update, user_data):
-    update.message.reply_text('Укажите телефон:',
+    update.message.reply_text('Введи номер телефона отримувача:',
                               reply_markup=ReplyKeyboardRemove())
 
     return COMMIT_MENU
 
 
 def main_menu_done(bot, update, user_data):
-    update.message.reply_text('До встречи!')
+    update.message.reply_text('До зустрічи!')
 
     return ConversationHandler.END
 
@@ -71,39 +71,51 @@ def commit_phone(bot, update, user_data):
     logger.info("phone: %s", update.message.text)
     text = update.message.text
     user_data['phone'] = text
-    reply_keyboard = [['Начать', 'Редактировать']]
-    update.message.reply_text('Вы указали телефон: ' + text + '. Подтвердите старт наблюдения.',
+    reply_keyboard = [['Вірно', 'Коригувати']]
+    update.message.reply_text('Номер, який ти ввів: ' + text,
                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
     return COMMIT_MENU2
 
+def confirm_tracking(bot, update, user_data):
+    logger.info("phone: %s", update.message.text)
+    text = update.message.text
+    reply_keyboard = [['Поїхали']]
+    update.message.reply_text('Чудово! Заходь до мене в чат та натискай "Поїхали", щоб розпочати подорож у '
+                              'віртуальному сопроводженні. Щоб припинити супроводження натисни "Я у безпеці". У разі '
+                              'потреби натискай "Допоможі мені"',
+                              reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
+
+    return COMMIT_MENU3
+
 
 def start_tracking(bot, update, user_data):
-    reply_keyboard = [['SOS!', 'Я дома']]
-    update.message.reply_text('Ваши передвижения отсыляются на номер ' + user_data['phone'],
+    reply_keyboard = [['Допоможі мені!', 'Я в безпеці']]
+    update.message.reply_text('Ввімкнений режім супроводу. Телефон отримувача: ' + user_data['phone'],
                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
     return TRACKING
 
 
 def sos(bot, update, user_data):
-    reply_keyboard = [['SOS!', 'Я дома']]
-    update.message.reply_text('Помощь скоро прийдет!',
+    reply_keyboard = [['Допоможі мені!', 'Я в безпеці']]
+    update.message.reply_text('Допомога скоро прийде!',
                               reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
     return TRACKING
 
 
 def home(bot, update, user_data):
-    update.message.reply_text('С возвращением!')
+    reply_keyboard = [['Розпочнем', 'Вихід']]
+    update.message.reply_text('Радий допомогти!',
+                              reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
 
-    return TRACKING
+    return MAIN_MENU
 
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
-
 
 def main():
     # Create the EventHandler and pass it your bot's token.
@@ -128,18 +140,23 @@ def main():
                                pass_user_data=True),
             ],
             COMMIT_MENU2: [
-                RegexHandler('^Начать$',
-                             start_tracking,
+                RegexHandler('^Вірно$',
+                             confirm_tracking,
                              pass_user_data=True),
-                RegexHandler('^Редактировать$',
+                RegexHandler('^Коригувати$',
                              main_menu_phone,
                              pass_user_data=True),
             ],
+            COMMIT_MENU3: [
+                RegexHandler('^Поїхали$',
+                             start_tracking,
+                             pass_user_data=True),
+            ],
             TRACKING: [
-                RegexHandler('^SOS!$',
+                RegexHandler('^Допоможі мені!$',
                              sos,
                              pass_user_data=True),
-                RegexHandler('^Я дома$',
+                RegexHandler('^Я в безпеці$',
                              home,
                              pass_user_data=True),
             ]
